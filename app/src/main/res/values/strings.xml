@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Robot Control</string>
+    <string name="fun_nvg">导航到标记点</string>
+    <string name="fun_clear_p">删除标记点</string>
+
+    <string name="mode_idle">空闲模式</string>
+    <string name="mode_build">建图模式</string>
+    <string name="mode_nvg">导航模式</string>
+    <string name="mode_shutdown">关闭机器人</string>
+    <string name="mode_exit">退出</string>
+
+    <string name="start_build_map">开始建地图，请操控机器人</string>
+    <string name="tip_nvg">开始导航</string>
+    <string name="nvg">正在路上</string>
+</resources>
