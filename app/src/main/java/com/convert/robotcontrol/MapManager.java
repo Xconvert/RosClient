@@ -14,6 +14,7 @@ import android.view.Display;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.convert.robotcontrol.socket.response.PoseMsgModel;
 import com.convert.robotcontrol.util.ImageProvider;
 import com.convert.robotcontrol.util.MapPrc;
 
@@ -31,7 +32,7 @@ public class MapManager {
     private static MapManager sMapManager;
     private MapPrc mMapPrc; //数字地图加工类
     private static Context mContext;
-    private static Point mRobotPos; //机器人所在
+    private static Point sRobotPos; //机器人所在
     private static Point sDestPos; //目的地
     private Bitmap mSrcMap; //初始地图
     private Bitmap mDesMap; //要显示的地图
@@ -39,7 +40,7 @@ public class MapManager {
     private double mPhoneLWHRatio;//手机宽高比
     private int mPhoneWidth;
     private int mPhoneHeight;
-    private CallBack mCallBack; // 用于更新图片
+    private MapCallBack mCallBack; // 用于更新图片
     //线程池
     private ExecutorService mSingleThreadExecutor = Executors.newSingleThreadExecutor();
     private ExecutorService mUpdateExecutor = Executors.newSingleThreadExecutor();
@@ -65,7 +66,7 @@ public class MapManager {
     }
 
     private void init() {
-        mRobotPos = new Point();
+        sRobotPos = new Point();
         sDestPos = new Point();
         initMap();
 
@@ -127,7 +128,7 @@ public class MapManager {
         mDesMap = Bitmap.createBitmap(mSrcMap, x, y, width, height);
     }
 
-    public void registerCallBack(CallBack callBack) {
+    public void registerCallBack(MapCallBack callBack) {
         mCallBack = callBack;
     }
 
@@ -202,7 +203,16 @@ public class MapManager {
                     paint.setColor(Color.BLUE);
                     canvas.drawCircle((int) ((sDestPos.x - x) * scale), (int) ((sDestPos.y - y) * scale), RADIUS, paint);
                 }
-                mCallBack.updateMap(mDesMap);
+                if (sRobotPos.x != 0 || sRobotPos.y != 0) {
+                    //如果目的地存在，画目的地
+                    Canvas canvas = new Canvas(mDesMap);
+                    Paint paint = new Paint();
+                    paint.setColor(Color.RED);
+                    canvas.drawCircle((int) ((sRobotPos.x - x) * scale), (int) ((sRobotPos.y - y) * scale), RADIUS, paint);
+                }
+                if (mCallBack != null) {
+                    mCallBack.updateMap(mDesMap);
+                }
             }
         });
     }
@@ -261,6 +271,19 @@ public class MapManager {
         });
     }
 
+    public void setRobotPos(final PointF point) {
+        mSingleThreadExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                int xInMap = (int) point.x;
+                int yInMap = (int) point.y;
+                sRobotPos.set(xInMap, yInMap);
+                updateMap(x, y, width, height);
+                Log.d(TAG, "setRobotPos: x is " + xInMap + ", y is " + yInMap);
+            }
+        });
+    }
+
     public void clearDesPos() {
         mSingleThreadExecutor.execute(new Runnable() {
             @Override
@@ -285,4 +308,26 @@ public class MapManager {
         Toast.makeText(mContext, "地图已保存", Toast.LENGTH_SHORT).show();
 
     }
+
+
+    //============================
+    //======== webSocket =========
+    //============================
+
+    //proportion of the map's abscissa
+    public double getXPro(){
+        return (double) sDestPos.x / mMapPrc.getCol();
+    }
+
+    //Proportion of the ordinate on the map
+    public double getYPro(){
+        return (double) (mMapPrc.getRow() - sDestPos.y) / mMapPrc.getRow();
+    }
+
+    public PointF PoseMsgModelToPoint(PoseMsgModel msg){
+        float xInMap = (float) msg.x * mMapPrc.getCol();
+        float yInMap = (float) (1 - msg.y) * mMapPrc.getRow();
+        return  new PointF(xInMap, yInMap);
+    }
+
 }

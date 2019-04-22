@@ -12,4 +12,8 @@
     <string name="start_build_map">开始建地图，请操控机器人</string>
     <string name="tip_nvg">开始导航</string>
     <string name="nvg">正在路上</string>
+
+    <string name="tip1">扫描设备中...</string>
+    <string name="tip2">请选择机器人IP</string>
+    <string name="connect_error">连接错误</string>
 </resources>

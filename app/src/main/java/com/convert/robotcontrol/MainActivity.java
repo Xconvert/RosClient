@@ -22,12 +22,14 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
-
+import com.convert.robotcontrol.socket.WsManager;
+import com.convert.robotcontrol.socket.request.ControlMsgModel;
+import com.convert.robotcontrol.socket.request.NavigationGoalMsgModel;
 import com.convert.robotcontrol.view.RockerView;
-
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements CallBack {
+
+public class MainActivity extends AppCompatActivity implements MapCallBack, VideoCallBack {
 
     private final String TAG = "MainActivity";
     private final int IDLE = 0;//空闲模式
@@ -42,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements CallBack {
     private final int MSG_UPDATE_MAP = 1;
     private final int MSG_VIDEO = 2;
     private final String KEY_MAP = "map";
+    private final String KEY_VIDEO = "video";
     private int mMode = MODE_UNKNOWN;
     private int mRobotMode = IDLE;
     private int mRobotState = IDLE;
@@ -75,6 +78,10 @@ public class MainActivity extends AppCompatActivity implements CallBack {
         mStartPoint = new PointF();
 
         updateMap(mMapManager.getDesMap());
+        //webSocket...
+        WsManager.getInstance().registerCallBack(this);
+        //WsManager.getInstance().init("125.216.245.187");
+
     }
 
     private void initView() {
@@ -108,11 +115,18 @@ public class MainActivity extends AppCompatActivity implements CallBack {
 
                 @Override
                 public void angle(double lineSpeed, double angularVelocity) {
-
+                    ControlMsgModel msg = new ControlMsgModel();
+                    msg.linear = lineSpeed;
+                    msg.angular = angularVelocity;
+                    WsManager.getInstance().doControl(msg);
                 }
 
                 @Override
                 public void onFinish() {
+                    ControlMsgModel msg = new ControlMsgModel();
+                    msg.linear = 0;
+                    msg.angular = 0;
+                    WsManager.getInstance().doControl(msg);
                 }
             });
         }
@@ -200,8 +214,12 @@ public class MainActivity extends AppCompatActivity implements CallBack {
                     mFuncNvg.setTextColor(Color.GREEN);
                     Toast.makeText(MainActivity.this, getString(R.string.tip_nvg), Toast.LENGTH_SHORT).show();
                     //...
+                    NavigationGoalMsgModel msg = new NavigationGoalMsgModel();
+                    msg.x = mMapManager.getXPro();
+                    msg.y = mMapManager.getYPro();
+                    WsManager.getInstance().doNavigationGoal(msg);
                     //...
-                    mMapManager.saveMapToFile();
+                    //mMapManager.saveMapToFile();
                 }
             }
         });
@@ -399,9 +417,21 @@ public class MainActivity extends AppCompatActivity implements CallBack {
     }
 
     @Override
+    public void updateVideo(Bitmap bitmap){
+        Message message = mHandler.obtainMessage(MSG_VIDEO);
+        Bundle bundle = new Bundle();
+        bundle.putParcelable(KEY_VIDEO, bitmap);
+        message.setData(bundle);
+        mHandler.sendMessage(message);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         mMapManager.unRegisterCallBack();
+        WsManager.getInstance().unRegisterCallBack();
+        WsManager.getInstance().disconnect();
+        Log.i(TAG, "onDestroy:");
     }
 
     private Handler mHandler = new Handler() {
@@ -429,9 +459,18 @@ public class MainActivity extends AppCompatActivity implements CallBack {
                     break;
                 case MSG_VIDEO:
                     //mVideo
+                    Bundle videoData = msg.getData();
+                    if (videoData != null) {
+                        Bitmap video = videoData.getParcelable(KEY_VIDEO);
+                        if (video != null) {
+                            mVideo.setImageBitmap(video);
+                            //Log.d(TAG, "handleMessage: mVideo.setImageBitmap(video);");
+                        }
+                    }
                     break;
                 default:
             }
         }
     };
+
 }

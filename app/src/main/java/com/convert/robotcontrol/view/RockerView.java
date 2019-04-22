@@ -22,8 +22,8 @@ public class RockerView extends View {
     private static final int DEFAULT_SIZE = 400;
     private static final int DEFAULT_ROCKER_RADIUS = 50;
     //暂定...最大线速度和最大角速度
-    private static final double MAX_SPEED = 1;
-    private static final double MAX_ANGULAR_VELOCITY = 1;
+    private static final double MAX_SPEED = 10;
+    private static final double MAX_ANGULAR_VELOCITY = 4;
 
     private Paint mAreaBackgroundPaint;
     private Paint mRockerPaint;
@@ -201,12 +201,15 @@ public class RockerView extends View {
         } else if (radian < 1.77 ){
             radian = Math.PI / 2;
         } else if (radian < 2.64){
-            speed /= 2;
-        } else if (radian < 2.94){
 
+        } else if (radian < 2.94){
+            speed /= 2;
         } else {
             radian = Math.PI;
             speed = 0;
+        }
+        if (touchPoint.y > centerPoint.y){
+            speed = -1 * speed;
         }
         double angularVelocity = MAX_ANGULAR_VELOCITY * (1 - radian / Math.PI * 2);
         //Log.d(TAG, "getRockerPositionPoint: radian " + angularVelocity);

@@ -7,6 +7,12 @@
     tools:context=".MainActivity">
 
     <!--视图界面-->
+    <ImageView
+        android:id="@+id/video"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:srcCompat="@android:drawable/ic_menu_report_image" />
+
     <com.convert.robotcontrol.view.RockerView
         android:id="@+id/rocker_view"
         android:layout_width="120dp"
@@ -19,12 +25,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:rockerBackground="@drawable/rocker_center"
         app:rockerRadius="20dp" />
-
-    <ImageView
-        android:id="@+id/video"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:srcCompat="@android:drawable/ic_menu_report_image" />
 
     <ImageView
         android:id="@+id/open_map_button"
