@@ -7,4 +7,8 @@
         <attr name="rockerRadius" format="dimension" />
     </declare-styleable>
 
+    <declare-styleable name="OrientationView">
+        <attr name="background" format="reference" />
+    </declare-styleable>
+
 </resources>

@@ -21,15 +21,17 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
-import com.convert.robotcontrol.socket.WsManager;
-import com.convert.robotcontrol.socket.request.ControlMsgModel;
-import com.convert.robotcontrol.socket.request.NavigationGoalMsgModel;
+
+import com.convert.robotcontrol.callback.Callback;
+import com.convert.robotcontrol.view.OrientationView;
 import com.convert.robotcontrol.view.RockerView;
+
 import java.util.ArrayList;
 
 
-public class MainActivity extends AppCompatActivity implements MapCallBack, VideoCallBack {
+public class MainActivity extends AppCompatActivity implements Callback {
 
     private final String TAG = "MainActivity";
     private final int IDLE = 0;//空闲模式
@@ -37,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
     private final int NVG = 2;//导航模式
     private final int SHUTDOWN = 3;//关闭机器人
     private final int EXIT = 4;//退出
+    //操作模式
     private final int MODE_UNKNOWN = -1;
     private final int MODE_DRAG = 0;
     private final int MODE_ZOOM = 1;
@@ -56,9 +59,16 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
     private LinearLayout mFuncLayout;
     private Button mFuncNvg;
     private Button mFuncClearPoint;
-    private Spinner mSpinner;//功能的下拉列表
+    private LinearLayout mPoseLayout;
+    private TextView mTipSetPose;
+    private Button mSetPoseBtn;
+    private OrientationView mOrientationView;
     private static boolean sIsOpenMap = false;
-    private MapManager mMapManager;
+    private Spinner mSpinner;//功能的下拉列表
+    //用于判断是否进行姿态设置
+    private static boolean sIsEstimatePose = false;
+
+    private RobotManager mRobotManager;
     //手势参数
     private PointF mStartPoint;
     private float mStartDis;
@@ -73,30 +83,21 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
         checkPermission();
         initView();
 
-        mMapManager = MapManager.getInstance(this);
-        mMapManager.registerCallBack(this);
+        mRobotManager = new RobotManager(this);
+        mRobotManager.registerCallBack(this);
         mStartPoint = new PointF();
 
-        updateMap(mMapManager.getDesMap());
-        //webSocket...
-        WsManager.getInstance().registerCallBack(this);
-        //WsManager.getInstance().init("125.216.245.187");
+        updateMap(mRobotManager.getDesMap());
 
     }
 
     private void initView() {
         //全屏沉浸模式
         hideSystemUI();
-        //全屏第二种方式，因为上一种不彻底
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-        if (Build.VERSION.SDK_INT >= 19) {
-            WindowManager.LayoutParams params = getWindow().getAttributes();
-            params.systemUiVisibility = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE;
-            getWindow().setAttributes(params);
-        }
 
-        //手动界面
+        //============================
+        //========= 手动界面 ==========
+        //============================
         mVideo = (ImageView) findViewById(R.id.video);
         mOpenMapBtn = (ImageView) findViewById(R.id.open_map_button);
         mOpenMapBtn.setOnClickListener(new View.OnClickListener() {
@@ -115,18 +116,13 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
 
                 @Override
                 public void angle(double lineSpeed, double angularVelocity) {
-                    ControlMsgModel msg = new ControlMsgModel();
-                    msg.linear = lineSpeed;
-                    msg.angular = angularVelocity;
-                    WsManager.getInstance().doControl(msg);
+                    //Log.d(TAG, "lineSpeed: " + lineSpeed + ", angular: " + angularVelocity);
+                    mRobotManager.doControl(lineSpeed, angularVelocity);
                 }
 
                 @Override
                 public void onFinish() {
-                    ControlMsgModel msg = new ControlMsgModel();
-                    msg.linear = 0;
-                    msg.angular = 0;
-                    WsManager.getInstance().doControl(msg);
+                    mRobotManager.doControl(0, 0);
                 }
             });
         }
@@ -190,14 +186,16 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
             }
         });
 
-        //地图界面
+        //============================
+        //========= 地图界面 ==========
+        //============================
         mMap = (ImageView) findViewById(R.id.map);
         mCloseMapBtn = (Button) findViewById(R.id.close_map_button);
         mCloseMapBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 closeMap();
-                mOpenMapBtn.setImageBitmap(mMapManager.getThumbnails());
+                mOpenMapBtn.setImageBitmap(mRobotManager.getThumbnails());
             }
         });
         mFuncLayout = (LinearLayout) findViewById(R.id.map_func_layout);
@@ -214,10 +212,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
                     mFuncNvg.setTextColor(Color.GREEN);
                     Toast.makeText(MainActivity.this, getString(R.string.tip_nvg), Toast.LENGTH_SHORT).show();
                     //...
-                    NavigationGoalMsgModel msg = new NavigationGoalMsgModel();
-                    msg.x = mMapManager.getXPro();
-                    msg.y = mMapManager.getYPro();
-                    WsManager.getInstance().doNavigationGoal(msg);
+                    mRobotManager.doNavigationGoal();
                     //...
                     //mMapManager.saveMapToFile();
                 }
@@ -228,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
             @Override
             public void onClick(View v) {
                 mFuncLayout.setVisibility(View.GONE);
-                mMapManager.clearDesPos();
+                mRobotManager.clearDesPos();
                 if (mRobotState == NVG) {
                     //导航结束
                     mRobotState = IDLE;
@@ -238,6 +233,56 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
                     mFuncNvg.setTextColor(Color.BLACK);
                     //...
                 }
+            }
+        });
+
+        mPoseLayout = (LinearLayout) findViewById(R.id.map_pose_layout);
+        mTipSetPose = (TextView) findViewById(R.id.tip_set_pose);
+        mSetPoseBtn = (Button) findViewById(R.id.func_set_pose);
+        mSetPoseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (sIsEstimatePose) {
+                    //sure the pose, and submit it
+                    if (mRobotManager.isSetRobotPoint()) {
+                        //view operation
+                        sIsEstimatePose = false;
+                        mTipSetPose.setVisibility(View.GONE);
+                        mOrientationView.setVisibility(View.GONE);
+                        mSetPoseBtn.setText(getText(R.string.set_position));
+
+                        mRobotManager.doPoseEstimate();
+                        Toast.makeText(MainActivity.this, getText(R.string.succeed_set_pose), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, getText(R.string.tip_sure_pose), Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    //enter the pose estimation mode, you can modify the pose and position.
+                    sIsEstimatePose = true;
+                    //view operation
+                    mTipSetPose.setVisibility(View.VISIBLE);
+                    mOrientationView.setVisibility(View.VISIBLE);
+                    mSetPoseBtn.setText(getText(R.string.sure_pose));
+
+                    mOrientationView.setAngle(mRobotManager.getOrientationAngle());
+                }
+            }
+        });
+        mOrientationView = (OrientationView) findViewById(R.id.orientation_view);
+        mOrientationView.setOnAngleChangeListener(new OrientationView.OnAngleChangeListener() {
+            @Override
+            public void onStart() {
+
+            }
+
+            @Override
+            public void angle(double stdAngle) {
+                mRobotManager.setOrientationAngle(stdAngle);
+            }
+
+            @Override
+            public void onFinish() {
+
             }
         });
     }
@@ -253,7 +298,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
         final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
         //检查权限（NEED_PERMISSION）是否被授权 PackageManager.PERMISSION_GRANTED表示同意授权
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED ) {
+                != PackageManager.PERMISSION_GRANTED) {
             //用户已经拒绝过一次，再次弹出权限申请对话框需要给用户一个解释
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission
                     .WRITE_EXTERNAL_STORAGE)) {
@@ -269,6 +314,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
 
     //全屏沉浸模式
     private void hideSystemUI() {
+        //全屏第一种方法
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -277,12 +323,22 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
                         | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
+
+        //全屏第二种方式，因为上一种不彻底
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        if (Build.VERSION.SDK_INT >= 19) {
+            WindowManager.LayoutParams params = getWindow().getAttributes();
+            params.systemUiVisibility = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE;
+            getWindow().setAttributes(params);
+        }
     }
 
     //打开地图
     private void openMap() {
         mMap.setVisibility(View.VISIBLE);
         mCloseMapBtn.setVisibility(View.VISIBLE);
+        mPoseLayout.setVisibility(View.VISIBLE);
 
         mVideo.setVisibility(View.GONE);
         mRockerView.setVisibility(View.GONE);
@@ -296,6 +352,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
     private void closeMap() {
         mMap.setVisibility(View.GONE);
         mCloseMapBtn.setVisibility(View.GONE);
+        mPoseLayout.setVisibility(View.GONE);
 
         mVideo.setVisibility(View.VISIBLE);
         mRockerView.setVisibility(View.VISIBLE);
@@ -324,20 +381,27 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
                     }
                     break;
                 case MotionEvent.ACTION_UP:// 抬起
-                    mMapManager.logMapArr();
+                    mRobotManager.logMapArr();
                     if (mIsClick) {
                         //触发点击事件
-                        mMapManager.setDesPos(new PointF(event.getX(), event.getY()));
-                        //开启地图功能按钮
-                        mFuncLayout.setVisibility(View.VISIBLE);
-                        //动画...
-                        if (mRobotState == NVG) {
-                            //导航结束...
-                            mRobotState = IDLE;
-                            mSpinner.setSelection(IDLE);
-                            mRobotMode = IDLE;
-                            mFuncNvg.setText(getString(R.string.fun_nvg));
-                            mFuncNvg.setTextColor(Color.BLACK);
+                        if (sIsEstimatePose) {
+                            //to sure the robot pose
+                            mRobotManager.setRobotPos(new PointF(event.getX(), event.getY()));
+                        }
+                        else {
+                            // to set destination point
+                            mRobotManager.setDesPos(new PointF(event.getX(), event.getY()));
+                            //开启地图功能按钮
+                            mFuncLayout.setVisibility(View.VISIBLE);
+                            //动画...
+                            if (mRobotState == NVG) {
+                                //导航结束...
+                                mRobotState = IDLE;
+                                mSpinner.setSelection(IDLE);
+                                mRobotMode = IDLE;
+                                mFuncNvg.setText(getString(R.string.fun_nvg));
+                                mFuncNvg.setTextColor(Color.BLACK);
+                            }
                         }
                     }
                     mIsClick = true;
@@ -385,7 +449,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
         if (Math.abs(endDis - mStartDis) > 10f) { // 两个手指像素大于10
             float scale = endDis / mStartDis;// 得到缩放倍数
             mStartDis = endDis;//重置距离
-            mMapManager.zoom(center, scale);
+            mRobotManager.zoom(center, scale);
         }
     }
 
@@ -395,7 +459,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
 
         mStartPoint.set(event.getX(), event.getY());
         //在当前基础上移动
-        mMapManager.moveMap(dx, dy);
+        mRobotManager.moveMap(dx, dy);
     }
 
     @Override
@@ -417,7 +481,7 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
     }
 
     @Override
-    public void updateVideo(Bitmap bitmap){
+    public void updateVideo(Bitmap bitmap) {
         Message message = mHandler.obtainMessage(MSG_VIDEO);
         Bundle bundle = new Bundle();
         bundle.putParcelable(KEY_VIDEO, bitmap);
@@ -428,9 +492,8 @@ public class MainActivity extends AppCompatActivity implements MapCallBack, Vide
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mMapManager.unRegisterCallBack();
-        WsManager.getInstance().unRegisterCallBack();
-        WsManager.getInstance().disconnect();
+        mRobotManager.close();
+        mHandler = null;
         Log.i(TAG, "onDestroy:");
     }
 

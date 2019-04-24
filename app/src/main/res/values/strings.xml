@@ -12,6 +12,11 @@
     <string name="start_build_map">开始建地图，请操控机器人</string>
     <string name="tip_nvg">开始导航</string>
     <string name="nvg">正在路上</string>
+    <string name="set_position">设置机器人位置</string>
+    <string name="set_pose">设置机器人姿态</string>
+    <string name="sure_pose">确认姿态</string>
+    <string name="tip_sure_pose">请在地图上选择机器人所在位置</string>
+    <string name="succeed_set_pose">姿态设置成功</string>
 
     <string name="tip1">扫描设备中...</string>
     <string name="tip2">请选择机器人IP</string>

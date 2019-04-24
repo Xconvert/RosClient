@@ -11,6 +11,7 @@
         android:id="@+id/video"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:scaleType="centerCrop"
         app:srcCompat="@android:drawable/ic_menu_report_image" />
 
     <com.convert.robotcontrol.view.RockerView
@@ -76,6 +77,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/btn_bg"
+            android:padding="8dp"
             android:text="@string/fun_nvg"/>
 
         <Button
@@ -84,7 +86,45 @@
             android:layout_height="wrap_content"
             android:background="@drawable/btn_bg"
             android:layout_marginStart="20dp"
+            android:padding="8dp"
             android:text="@string/fun_clear_p"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/map_pose_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:layout_marginStart="32dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/tip_set_pose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/set_pose"
+            android:visibility="gone" />
+
+        <com.convert.robotcontrol.view.OrientationView
+            android:id="@+id/orientation_view"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:background="@drawable/orientation" />
+
+        <Button
+            android:id="@+id/func_set_pose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/btn_bg"
+            android:padding="8dp"
+            android:text="@string/set_position" />
 
     </LinearLayout>
 

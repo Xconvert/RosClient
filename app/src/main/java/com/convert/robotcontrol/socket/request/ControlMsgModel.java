@@ -1,5 +1,7 @@
 package com.convert.robotcontrol.socket.request;
 
+import java.lang.reflect.Type;
+
 /**
  * This class describes the model of control message, which is used to
  * directly control Turtlebot's movement.

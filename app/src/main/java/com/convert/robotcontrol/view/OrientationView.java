@@ -16,73 +16,62 @@ import android.view.View;
 
 import com.convert.robotcontrol.R;
 
-public class RockerView extends View {
-    private static final String TAG = "RockerView";
+import static android.graphics.Color.BLUE;
 
-    private static final int DEFAULT_SIZE = 400;
-    private static final int DEFAULT_ROCKER_RADIUS = 50;
-    //暂定...最大线速度和最大角速度
-    private static final double MAX_SPEED = 0.5;//最大0.8
-    private static final double MAX_ANGULAR_VELOCITY = 2;//最大5.4
+public class OrientationView extends View {
+    private static final String TAG = "OrientationView";
+
+    private static final int DEFAULT_SIZE = 200;
+    private static final int DEFAULT_POINT_RADIUS = 16;
 
     private Paint mAreaBackgroundPaint;
-    private Paint mRockerPaint;
+    private Paint mPointPaint;
+    private Paint mLinePaint;
 
-    private Point mRockerPosition;
+    private Point mPointPosition;
     private Point mCenterPoint;
 
     private int mAreaRadius;
-    private int mRockerRadius;
 
     private OnAngleChangeListener mOnAngleChangeListener;
 
     // 摇杆可移动区域背景
     private Bitmap mAreaBitmap;
 
-    // 摇杆背景
-    private Bitmap mRockerBitmap;
-
-    public RockerView(Context context, AttributeSet attrs) {
+    public OrientationView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         // 获取自定义属性
         initAttribute(context, attrs);
 
-        // 移动区域画笔
         mAreaBackgroundPaint = new Paint();
         mAreaBackgroundPaint.setAntiAlias(true);
 
-        // 摇杆画笔
-        mRockerPaint = new Paint();
-        mRockerPaint.setAntiAlias(true);
+        mPointPaint = new Paint();
+        mPointPaint.setColor(BLUE);
+        mPointPaint.setAntiAlias(true);
+
+        mLinePaint = new Paint();
+        mLinePaint.setColor(BLUE);
+        mLinePaint.setStrokeWidth(DEFAULT_POINT_RADIUS / 3);
+        mLinePaint.setAntiAlias(true);
 
         // 中心点
         mCenterPoint = new Point();
-        // 摇杆位置
-        mRockerPosition = new Point();
+
+        mPointPosition = new Point();
     }
 
 
     private void initAttribute(Context context, AttributeSet attrs) {
-        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.RockerView);
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.OrientationView);
 
         // 可移动区域背景
-        Drawable areaBackground = typedArray.getDrawable(R.styleable.RockerView_areaBackground);
+        Drawable areaBackground = typedArray.getDrawable(R.styleable.OrientationView_background);
         if (null != areaBackground) {
             // 设置背景
             mAreaBitmap = ((BitmapDrawable) areaBackground).getBitmap();
         }
-
-        // 摇杆背景
-        Drawable rockerBackground = typedArray.getDrawable(R.styleable.RockerView_rockerBackground);
-        if (null != rockerBackground) {
-            // 设置摇杆背景
-            mRockerBitmap = ((BitmapDrawable) rockerBackground).getBitmap();
-        }
-
-        // 摇杆半径
-        mRockerRadius = typedArray.getDimensionPixelOffset(R.styleable.RockerView_rockerRadius, DEFAULT_ROCKER_RADIUS);
-
         typedArray.recycle();
     }
 
@@ -124,11 +113,11 @@ public class RockerView extends View {
         mCenterPoint.set(centerX, centerY);
         // 可移动区域的半径
         mAreaRadius = (measuredWidth <= measuredHeight) ? centerX : centerY;
-        mAreaRadius -= mRockerRadius;
+        mAreaRadius -= DEFAULT_POINT_RADIUS;
 
-        // 摇杆位置
-        if (0 == mRockerPosition.x || 0 == mRockerPosition.y) {
-            mRockerPosition.set(mCenterPoint.x, mCenterPoint.y);
+        // 位置
+        if (0 == mPointPosition.x || 0 == mPointPosition.y) {
+            mPointPosition.set(mCenterPoint.x + mAreaRadius, mCenterPoint.y);
         }
 
         // 画可移动区域
@@ -136,10 +125,11 @@ public class RockerView extends View {
         Rect dst1 = new Rect(mCenterPoint.x - mAreaRadius, mCenterPoint.y - mAreaRadius, mCenterPoint.x + mAreaRadius, mCenterPoint.y + mAreaRadius);
         canvas.drawBitmap(mAreaBitmap, src1, dst1, mAreaBackgroundPaint);
 
-        // 画摇杆
-        Rect src2 = new Rect(0, 0, mRockerBitmap.getWidth(), mRockerBitmap.getHeight());
-        Rect dst2 = new Rect(mRockerPosition.x - mRockerRadius, mRockerPosition.y - mRockerRadius, mRockerPosition.x + mRockerRadius, mRockerPosition.y + mRockerRadius);
-        canvas.drawBitmap(mRockerBitmap, src2, dst2, mRockerPaint);
+        // 画点
+        canvas.drawCircle(mPointPosition.x, mPointPosition.y, DEFAULT_POINT_RADIUS, mPointPaint);
+        canvas.drawCircle(mCenterPoint.x, mCenterPoint.y, DEFAULT_POINT_RADIUS / 2, mPointPaint);
+        // 画线
+        canvas.drawLine(mCenterPoint.x, mCenterPoint.y, mPointPosition.x, mPointPosition.y, mLinePaint);
     }
 
     @Override
@@ -147,21 +137,22 @@ public class RockerView extends View {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:// 按下
                 // 回调开始
-                mOnAngleChangeListener.onStart();
+                if (mOnAngleChangeListener != null) {
+                    mOnAngleChangeListener.onStart();
+                }
             case MotionEvent.ACTION_MOVE:// 移动
                 float moveX = event.getX();
                 float moveY = event.getY();
-                mRockerPosition = getRockerPositionPoint(mCenterPoint, new Point((int) moveX, (int) moveY), mAreaRadius);
+                mPointPosition = getPositionPoint(mCenterPoint, new Point((int) moveX, (int) moveY), mAreaRadius);
                 //移动摇杆到指定位置
-                moveRocker(mRockerPosition.x, mRockerPosition.y);
+                movePoint(mPointPosition.x, mPointPosition.y);
                 break;
             case MotionEvent.ACTION_UP:// 抬起
             case MotionEvent.ACTION_CANCEL:// 移出区域
                 // 回调结束
-                mOnAngleChangeListener.onFinish();
-
-                //移动摇杆到指定位置
-                moveRocker(mCenterPoint.x, mCenterPoint.y);
+                if (mOnAngleChangeListener != null) {
+                    mOnAngleChangeListener.onFinish();
+                }
                 break;
         }
         return true;
@@ -175,69 +166,65 @@ public class RockerView extends View {
      * @param regionRadius 摇杆可活动区域半径
      * @return 摇杆实际显示的位置（点）
      */
-    private Point getRockerPositionPoint(Point centerPoint, Point touchPoint, float regionRadius) {
+    private Point getPositionPoint(Point centerPoint, Point touchPoint, float regionRadius) {
         // 两点在X轴的距离
         float lenX = (float) (touchPoint.x - centerPoint.x);
         // 两点在Y轴距离
         float lenY = (float) (touchPoint.y - centerPoint.y);
         // 两点距离
         float lenXY = (float) Math.sqrt((double) (lenX * lenX + lenY * lenY));
-        //线速度
-        double speed = MAX_SPEED;
-        if (lenXY < regionRadius){
-            speed = MAX_SPEED * lenXY / regionRadius;
-        }
+
         //Log.d(TAG, "getRockerPositionPoint: speed " + speed);
 
         // 计算弧度
         double radian = Math.acos(lenX / lenXY);
-        if (radian < 0.2){
-            radian = 0;
-            speed = 0;
-        } else if (radian < 0.5) {
-            speed /= 2;
-        } else if (radian < 1.37){
-
-        } else if (radian < 1.77 ){
-            radian = Math.PI / 2;
-        } else if (radian < 2.64){
-
-        } else if (radian < 2.94){
-            speed /= 2;
-        } else {
-            radian = Math.PI;
-            speed = 0;
+        if (touchPoint.y > centerPoint.y) {
+            radian = Math.PI * 2 - radian;
         }
-        if (touchPoint.y > centerPoint.y){
-            speed = -1 * speed;
-        }
-        //radian > 3.14 / 2 car 顺时针转动，小于 3.14 / 2 则逆时针转动
-        double angularVelocity = MAX_ANGULAR_VELOCITY * (radian / Math.PI * 2 - 1);
-        //Log.d(TAG, "getRockerPositionPoint: radian " + radian);
+
+        Log.d(TAG, "getPointPositionPoint: radian " + radian);
         // 回调返回参数
-        if (mOnAngleChangeListener != null){
-            mOnAngleChangeListener.angle(speed, angularVelocity);
+        if (mOnAngleChangeListener != null) {
+            double stdAngle = radian / (Math.PI * 2);
+//      The value of angle is supposed to be between 0.0 and 1.0.
+//      It corresponds to direction as follows:
+//                  0.25
+//                    ^
+//                    |
+//            0.5 <-- * --> 0.0/1.0
+//                    |
+//                    v
+//                  0.75
+            mOnAngleChangeListener.angle(stdAngle);
         }
 
-        if (lenXY  <= regionRadius) { // 触摸位置在可活动范围内
-            return touchPoint;
-        } else { // 触摸位置在可活动范围以外
-            // 计算要显示的位置
-            radian = radian * (touchPoint.y > centerPoint.y ? 1 : -1);
-            int showPointX = (int) (centerPoint.x + regionRadius * Math.cos(radian));
-            int showPointY = (int) (centerPoint.y + regionRadius * Math.sin(radian));
-            return new Point(showPointX, showPointY);
-        }
+        // 计算要显示的位置
+        int showPointX = (int) (centerPoint.x + regionRadius * lenX / lenXY);
+        int showPointY = (int) (centerPoint.y + regionRadius * lenY / lenXY);
+        return new Point(showPointX, showPointY);
+    }
+
+    /**
+     * 移动到指定位置
+     *
+     * @param x x坐标
+     * @param y y坐标
+     */
+    private void movePoint(float x, float y) {
+        mPointPosition.set((int) x, (int) y);
+        invalidate();
     }
 
     /**
      * 移动摇杆到指定位置
      *
-     * @param x x坐标
-     * @param y y坐标
+     * @param angle 0.0-1.0
      */
-    private void moveRocker(float x, float y) {
-        mRockerPosition.set((int) x, (int) y);
+    public void setAngle(double angle) {
+        double radian = angle * Math.PI * 2;
+        int x = (int) (mCenterPoint.x + mAreaRadius * Math.cos(radian));
+        int y = (int) (mCenterPoint.y - mAreaRadius * Math.sin(radian));
+        mPointPosition.set(x, y);
         invalidate();
     }
 
@@ -260,12 +247,19 @@ public class RockerView extends View {
         void onStart();
 
         /**
-         * 摇杆角度变化
-         * @param lineSpeed 线速度
-         * @param angularVelocity 角速度
+         * 角度变化
          *
+         * @param stdAngle The value of angle is supposed to be between 0.0 and 1.0.
+         *                 It corresponds to direction as follows:
+         *                 0.25
+         *                 ^
+         *                 |
+         *                 0.5 <-- * --> 0.0/1.0
+         *                 |
+         *                 v
+         *                 0.75
          */
-        void angle(double lineSpeed, double angularVelocity);
+        void angle(double stdAngle);
 
         // 结束
         void onFinish();

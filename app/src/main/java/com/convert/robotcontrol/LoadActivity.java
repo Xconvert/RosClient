@@ -16,21 +16,20 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.convert.robotcontrol.callback.LoadCallback;
 import com.convert.robotcontrol.socket.WsManager;
 
-import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LoadActivity extends AppCompatActivity implements LoadCallBack{
+public class LoadActivity extends AppCompatActivity implements LoadCallback {
 
     private final String TAG = "LoadActivity";
     private final int MSG_PROGRESS = 0;
@@ -75,7 +74,9 @@ public class LoadActivity extends AppCompatActivity implements LoadCallBack{
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.i(TAG, "onItemClick: " + mIpList.get(position));
-                WsManager.getInstance().init(mIpList.get(position));
+                //WsManager.getInstance().init(mIpList.get(position));
+                Intent intent = new Intent(LoadActivity.this, MainActivity.class);
+                startActivity(intent);
             }
         });
     }

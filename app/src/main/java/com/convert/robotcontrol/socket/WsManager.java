@@ -1,18 +1,11 @@
 package com.convert.robotcontrol.socket;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.util.Base64;
 import android.util.Log;
-
-import com.convert.robotcontrol.LoadCallBack;
-import com.convert.robotcontrol.MapManager;
-import com.convert.robotcontrol.VideoCallBack;
+import com.convert.robotcontrol.callback.LoadCallback;
+import com.convert.robotcontrol.callback.WebSocketCallback;
 import com.convert.robotcontrol.socket.request.ControlMsgModel;
 import com.convert.robotcontrol.socket.request.NavigationGoalMsgModel;
 import com.convert.robotcontrol.socket.request.PoseEstimateMsgModel;
-import com.convert.robotcontrol.socket.response.ImageMsgModel;
-import com.convert.robotcontrol.socket.response.PoseMsgModel;
 import com.google.gson.Gson;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
@@ -25,10 +18,10 @@ import java.util.List;
 import java.util.Map;
 
 public class WsManager {
-    private static WsManager mInstance;
+    private static WsManager sInstance;
     private final String TAG = "WsManager";
-    private VideoCallBack mCallBack;
-    private LoadCallBack mLoadCallBack;
+    private WebSocketCallback mCallback;
+    private LoadCallback mLoadCallBack;
     /**
      * WebSocket config
      */
@@ -55,14 +48,14 @@ public class WsManager {
     }
 
     public static WsManager getInstance() {
-        if (mInstance == null) {
+        if (sInstance == null) {
             synchronized (WsManager.class) {
-                if (mInstance == null) {
-                    mInstance = new WsManager();
+                if (sInstance == null) {
+                    sInstance = new WsManager();
                 }
             }
         }
-        return mInstance;
+        return sInstance;
     }
 
     public void init(String url) {
@@ -166,9 +159,7 @@ public class WsManager {
             super.onTextMessage(websocket, text);
             Log.d(TAG, "NavigationWs onTextMessage: " + text);
             //收到地图，机器人位置信息
-            Gson gson = new Gson();
-            PoseMsgModel msg = gson.fromJson(text, PoseMsgModel.class);
-            MapManager.getInstance(null).setRobotPos(MapManager.getInstance(null).PoseMsgModelToPoint(msg));
+            mCallback.report(WebSocketCallback.DataType.ROBOT_POSE, text);
         }
 
 
@@ -203,10 +194,7 @@ public class WsManager {
         @Override
         public void onTextMessage(WebSocket websocket, String text) throws Exception {
             super.onTextMessage(websocket, text);
-            Gson gson = new Gson();
-            ImageMsgModel response = gson.fromJson(text, ImageMsgModel.class);
-            //Log.i(TAG, "VideoWs onTextMessage: " + response.base64EncodedImageStr);
-            mCallBack.updateVideo(stringToBitmap(response.base64EncodedImageStr));
+            mCallback.report(WebSocketCallback.DataType.VIDEO, text);
         }
 
 
@@ -281,6 +269,8 @@ public class WsManager {
     public void doControl(ControlMsgModel msg) {
         if (mControlStatus == WsStatus.CONNECT_SUCCESS) {
             Gson gson = new Gson();
+
+            Log.d(TAG, "doControl: " + gson.toJson(msg));
             mControlClient.sendText(gson.toJson(msg));
         }
     }
@@ -288,41 +278,26 @@ public class WsManager {
     public void doPoseEstimate(PoseEstimateMsgModel msg) {
         if (mNavigationStatus == WsStatus.CONNECT_SUCCESS) {
             Gson gson = new Gson();
-            mControlClient.sendText(gson.toJson(msg));
+            mNavigationClient.sendText(gson.toJson(msg));
         }
     }
 
     public void doNavigationGoal(NavigationGoalMsgModel msg) {
         if (mNavigationStatus == WsStatus.CONNECT_SUCCESS) {
             Gson gson = new Gson();
-            mControlClient.sendText(gson.toJson(msg));
+            mNavigationClient.sendText(gson.toJson(msg));
         }
     }
 
-    public Bitmap stringToBitmap(String string) {
-
-        // 将字符串转换成Bitmap类型
-        Bitmap bitmap = null;
-        try {
-            byte[] bitmapArray = Base64.decode(string, Base64.DEFAULT);
-
-            bitmap = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return bitmap;
+    public void registerCallback(WebSocketCallback callBack) {
+        mCallback = callBack;
     }
 
-    public void registerCallBack(VideoCallBack callBack) {
-        mCallBack = callBack;
+    public void unRegisterCallback() {
+        mCallback = null;
     }
 
-    public void unRegisterCallBack() {
-        mCallBack = null;
-    }
-
-    public void registerLoadCallBack(LoadCallBack callBack) {
+    public void registerLoadCallBack(LoadCallback callBack) {
         mLoadCallBack = callBack;
     }
 
