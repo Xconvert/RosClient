@@ -7,6 +7,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.Base64;
 import android.util.Log;
+
 import com.convert.robotcontrol.callback.Callback;
 import com.convert.robotcontrol.callback.WebSocketCallback;
 import com.convert.robotcontrol.socket.WsManager;
@@ -17,26 +18,35 @@ import com.convert.robotcontrol.socket.response.ImageMsgModel;
 import com.convert.robotcontrol.socket.response.PoseMsgModel;
 import com.google.gson.Gson;
 
-public class RobotManager implements WebSocketCallback{
+public class RobotManager implements WebSocketCallback {
 
     private final String TAG = "RobotManager";
 
-    private Context mContext;
+    private static RobotManager sRobotManager;
+
     private Callback mCallback;
     //map manager
     private MapManager mMapManager;
     //webSocket
     private WsManager mWsManager;
 
-    public RobotManager(Context context) {
-        if (context != null) {
-            mContext = context;
-        }
-        init();
+    private RobotManager() {
     }
 
-    private void init() {
-        mMapManager = new MapManager(mContext);
+    public static RobotManager getInstance() {
+        if (sRobotManager == null) {
+            synchronized (RobotManager.class) {
+                if (sRobotManager == null) {
+                    sRobotManager = new RobotManager();
+                }
+            }
+        }
+        return sRobotManager;
+    }
+
+    public void init(Context context) {
+        Log.i(TAG, "init");
+        mMapManager = new MapManager(context);
         mWsManager = WsManager.getInstance();
     }
 
@@ -47,6 +57,7 @@ public class RobotManager implements WebSocketCallback{
     }
 
     public void close() {
+        Log.i(TAG, "close");
         mMapManager.unRegisterCallback();
         mWsManager.unRegisterCallback();
         mWsManager.disconnect();
@@ -114,6 +125,7 @@ public class RobotManager implements WebSocketCallback{
     }
 
     public void doNavigationGoal() {
+        Log.i(TAG, "doNavigationGoal");
         NavigationGoalMsgModel msg = new NavigationGoalMsgModel();
         msg.type = NavigationGoalMsgModel.typeFieldValue;
         msg.x = getXProp();
@@ -147,19 +159,19 @@ public class RobotManager implements WebSocketCallback{
         return bitmap;
     }
 
-    private Point PoseMsgModelToPoint(PoseMsgModel msg){
-        int xInMap = (int) msg.x * mMapManager.getMapWidth();
-        int yInMap = (int) (1 - msg.y) * mMapManager.getMapHeight();
-        return  new Point(xInMap, yInMap);
+    private Point PoseMsgModelToPoint(PoseMsgModel msg) {
+        int xInMap = (int) (msg.x * mMapManager.getMapWidth());
+        int yInMap = (int) ((1 - msg.y) * mMapManager.getMapHeight());
+        return new Point(xInMap, yInMap);
     }
 
     //proportion of the map's abscissa
-    private double getXProp(){
+    private double getXProp() {
         return (double) mMapManager.getDestPos().x / mMapManager.getMapWidth();
     }
 
     //Proportion of the ordinate on the map
-    private double getYProp(){
+    private double getYProp() {
         return 1 - (double) mMapManager.getDestPos().y / mMapManager.getMapHeight();
     }
 
@@ -170,9 +182,9 @@ public class RobotManager implements WebSocketCallback{
             ImageMsgModel response = gson.fromJson(data, ImageMsgModel.class);
             //Log.i(TAG, "VideoWs onTextMessage: " + response.base64EncodedImageStr);
             mCallback.updateVideo(stringToBitmap(response.base64EncodedImageStr));
-        }
-        else if (type == DataType.ROBOT_POSE) {
+        } else if (type == DataType.ROBOT_POSE) {
             //收到地图，机器人位置信息
+            Log.i(TAG, "report: data is " + data);
             Gson gson = new Gson();
             PoseMsgModel msg = gson.fromJson(data, PoseMsgModel.class);
             mMapManager.setOrientationAngle(msg.angle);

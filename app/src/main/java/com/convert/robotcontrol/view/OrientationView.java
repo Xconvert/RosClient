@@ -35,6 +35,9 @@ public class OrientationView extends View {
 
     private OnAngleChangeListener mOnAngleChangeListener;
 
+    private Rect mSrcRect;
+    private Rect mDstRect;
+
     // 摇杆可移动区域背景
     private Bitmap mAreaBitmap;
 
@@ -60,6 +63,9 @@ public class OrientationView extends View {
         mCenterPoint = new Point();
 
         mPointPosition = new Point();
+
+        mSrcRect = new Rect(0, 0, mAreaBitmap.getWidth(), mAreaBitmap.getHeight());
+        mDstRect = new Rect();
     }
 
 
@@ -103,27 +109,27 @@ public class OrientationView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        int measuredWidth = getMeasuredWidth();
-        int measuredHeight = getMeasuredHeight();
-
-        int centerX = measuredWidth / 2;
-        int centerY = measuredHeight / 2;
-        // 中心点
-        mCenterPoint.set(centerX, centerY);
-        // 可移动区域的半径
-        mAreaRadius = (measuredWidth <= measuredHeight) ? centerX : centerY;
-        mAreaRadius -= DEFAULT_POINT_RADIUS;
-
-        // 位置
+        //初始化，第一次执行刷新界面
         if (0 == mPointPosition.x || 0 == mPointPosition.y) {
+            int measuredWidth = getMeasuredWidth();
+            int measuredHeight = getMeasuredHeight();
+
+            int centerX = measuredWidth / 2;
+            int centerY = measuredHeight / 2;
+            // 中心点
+            mCenterPoint.set(centerX, centerY);
+            // 可移动区域的半径
+            mAreaRadius = (measuredWidth <= measuredHeight) ? centerX : centerY;
+            mAreaRadius -= DEFAULT_POINT_RADIUS;
+            // 位置
             mPointPosition.set(mCenterPoint.x + mAreaRadius, mCenterPoint.y);
         }
 
+        mDstRect.set(mCenterPoint.x - mAreaRadius, mCenterPoint.y - mAreaRadius,
+                mCenterPoint.x + mAreaRadius, mCenterPoint.y + mAreaRadius);
+
         // 画可移动区域
-        Rect src1 = new Rect(0, 0, mAreaBitmap.getWidth(), mAreaBitmap.getHeight());
-        Rect dst1 = new Rect(mCenterPoint.x - mAreaRadius, mCenterPoint.y - mAreaRadius, mCenterPoint.x + mAreaRadius, mCenterPoint.y + mAreaRadius);
-        canvas.drawBitmap(mAreaBitmap, src1, dst1, mAreaBackgroundPaint);
+        canvas.drawBitmap(mAreaBitmap, mSrcRect, mDstRect, mAreaBackgroundPaint);
 
         // 画点
         canvas.drawCircle(mPointPosition.x, mPointPosition.y, DEFAULT_POINT_RADIUS, mPointPaint);

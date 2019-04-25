@@ -20,5 +20,10 @@
 
     <string name="tip1">扫描设备中...</string>
     <string name="tip2">请选择机器人IP</string>
+    <string name="tip3">请打开储存权限！</string>
     <string name="connect_error">连接错误</string>
+
+    <string name="video">视频</string>
+    <string name="map_th">地图的略缩图</string>
+    <string name="map">地图</string>
 </resources>

@@ -38,9 +38,13 @@ public class RockerView extends View {
 
     // 摇杆可移动区域背景
     private Bitmap mAreaBitmap;
+    private Rect mSrc1;
+    private Rect mDst1;
 
     // 摇杆背景
     private Bitmap mRockerBitmap;
+    private Rect mSrc2;
+    private Rect mDst2;
 
     public RockerView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -60,6 +64,13 @@ public class RockerView extends View {
         mCenterPoint = new Point();
         // 摇杆位置
         mRockerPosition = new Point();
+
+        // 画可移动区域
+        mSrc1 = new Rect(0, 0, mAreaBitmap.getWidth(), mAreaBitmap.getHeight());
+        mDst1 = new Rect();
+        // 画摇杆
+        mSrc2 = new Rect(0, 0, mRockerBitmap.getWidth(), mRockerBitmap.getHeight());
+        mDst2 = new Rect();
     }
 
 
@@ -115,31 +126,31 @@ public class RockerView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        int measuredWidth = getMeasuredWidth();
-        int measuredHeight = getMeasuredHeight();
-
-        int centerX = measuredWidth / 2;
-        int centerY = measuredHeight / 2;
-        // 中心点
-        mCenterPoint.set(centerX, centerY);
-        // 可移动区域的半径
-        mAreaRadius = (measuredWidth <= measuredHeight) ? centerX : centerY;
-        mAreaRadius -= mRockerRadius;
-
-        // 摇杆位置
+        //初始化，第一次执行刷新界面
         if (0 == mRockerPosition.x || 0 == mRockerPosition.y) {
+            int measuredWidth = getMeasuredWidth();
+            int measuredHeight = getMeasuredHeight();
+
+            int centerX = measuredWidth / 2;
+            int centerY = measuredHeight / 2;
+            // 中心点
+            mCenterPoint.set(centerX, centerY);
+            // 可移动区域的半径
+            mAreaRadius = (measuredWidth <= measuredHeight) ? centerX : centerY;
+            mAreaRadius -= mRockerRadius;
+            // 摇杆位置
             mRockerPosition.set(mCenterPoint.x, mCenterPoint.y);
         }
 
         // 画可移动区域
-        Rect src1 = new Rect(0, 0, mAreaBitmap.getWidth(), mAreaBitmap.getHeight());
-        Rect dst1 = new Rect(mCenterPoint.x - mAreaRadius, mCenterPoint.y - mAreaRadius, mCenterPoint.x + mAreaRadius, mCenterPoint.y + mAreaRadius);
-        canvas.drawBitmap(mAreaBitmap, src1, dst1, mAreaBackgroundPaint);
+        mDst1.set(mCenterPoint.x - mAreaRadius, mCenterPoint.y - mAreaRadius,
+                mCenterPoint.x + mAreaRadius, mCenterPoint.y + mAreaRadius);
+        canvas.drawBitmap(mAreaBitmap, mSrc1, mDst1, mAreaBackgroundPaint);
 
         // 画摇杆
-        Rect src2 = new Rect(0, 0, mRockerBitmap.getWidth(), mRockerBitmap.getHeight());
-        Rect dst2 = new Rect(mRockerPosition.x - mRockerRadius, mRockerPosition.y - mRockerRadius, mRockerPosition.x + mRockerRadius, mRockerPosition.y + mRockerRadius);
-        canvas.drawBitmap(mRockerBitmap, src2, dst2, mRockerPaint);
+        mDst2.set(mRockerPosition.x - mRockerRadius, mRockerPosition.y - mRockerRadius,
+                mRockerPosition.x + mRockerRadius, mRockerPosition.y + mRockerRadius);
+        canvas.drawBitmap(mRockerBitmap, mSrc2, mDst2, mRockerPaint);
     }
 
     @Override

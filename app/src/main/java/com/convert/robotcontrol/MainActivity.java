@@ -83,7 +83,8 @@ public class MainActivity extends AppCompatActivity implements Callback {
         checkPermission();
         initView();
 
-        mRobotManager = new RobotManager(this);
+        mRobotManager = RobotManager.getInstance();
+        mRobotManager.init(this);
         mRobotManager.registerCallBack(this);
         mStartPoint = new PointF();
 
@@ -302,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements Callback {
             //用户已经拒绝过一次，再次弹出权限申请对话框需要给用户一个解释
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission
                     .WRITE_EXTERNAL_STORAGE)) {
-                //Toast.makeText(this, "请打开储存权限！", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getText(R.string.tip3), Toast.LENGTH_SHORT).show();
             }
             //申请权限
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},

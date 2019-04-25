@@ -100,12 +100,7 @@ public class WsManager {
     }
 
     private String createWsUrl(String url, int port){
-        StringBuilder sb = new StringBuilder();
-        sb.append("ws://");
-        sb.append(url);
-        sb.append(":");
-        sb.append(port);
-        return sb.toString();
+        return "ws://" + url + ":" + port;
     }
 
 
@@ -138,9 +133,9 @@ public class WsManager {
         public void onConnectError(WebSocket websocket, WebSocketException exception)
                 throws Exception {
             super.onConnectError(websocket, exception);
+            mLoadCallBack.report(false);
             Log.e(TAG, "ControlWs onConnectError: 连接错误", exception);
             setControlStatus(WsStatus.CONNECT_FAIL);
-            mLoadCallBack.report(false);
         }
 
 
@@ -285,6 +280,7 @@ public class WsManager {
     public void doNavigationGoal(NavigationGoalMsgModel msg) {
         if (mNavigationStatus == WsStatus.CONNECT_SUCCESS) {
             Gson gson = new Gson();
+            Log.i(TAG, "doNavigationGoal: " + gson.toJson(msg));
             mNavigationClient.sendText(gson.toJson(msg));
         }
     }
