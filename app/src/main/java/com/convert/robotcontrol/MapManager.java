@@ -28,6 +28,10 @@ import static com.convert.robotcontrol.util.ImageProvider.sTempImgName;
 public class MapManager {
 
     private final String TAG = "MapManager";
+    public static final int UP = 0;
+    public static final int LEFT = 1;
+    public static final int DOWN = 2;
+    public static final int RIGHT = 3;
     private final int RADIUS = 16;
     private int mRate = 1;//显示率
 
@@ -56,7 +60,7 @@ public class MapManager {
     private double mMaxMgn = 10; //最大放大倍数
     private double mMinMgn = 1; //最小放大倍数
 
-    public MapManager(Context context) {
+    MapManager(Context context) {
         if (context != null) mContext = context;
         init();
     }
@@ -298,6 +302,26 @@ public class MapManager {
 
     public Point getRobotPos() {
         return sRobotPos;
+    }
+
+    public void moveRobot(int direct, int px) {
+        Point point = new Point(sRobotPos);
+        switch (direct){
+            case UP:
+                point.offset(0, -px);
+                break;
+            case LEFT:
+                point.offset(-px, 0);
+                break;
+            case DOWN:
+                point.offset(0, px);
+                break;
+            case RIGHT:
+                point.offset(px, 0);
+                break;
+                default: return;
+        }
+        setRobotPos(point);
     }
 
     public Point getDestPos() {

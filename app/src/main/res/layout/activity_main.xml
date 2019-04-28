@@ -79,6 +79,7 @@
             android:id="@+id/func_ngv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            style="?android:attr/buttonStyle"
             android:background="@drawable/btn_bg"
             android:padding="8dp"
             android:text="@string/fun_nvg"/>
@@ -87,6 +88,7 @@
             android:id="@+id/func_clear_point"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            style="?android:attr/buttonStyle"
             android:background="@drawable/btn_bg"
             android:layout_marginStart="20dp"
             android:padding="8dp"
@@ -111,6 +113,55 @@
             android:layout_height="wrap_content"
             android:text="@string/set_pose"
             android:visibility="gone" />
+
+        <Button
+            android:id="@+id/func_pose_up"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="4dp"
+            android:layout_gravity="center"
+            android:background="@drawable/btn_bg"
+            android:padding="4dp"
+            android:text="@string/up"
+            android:visibility="gone"/>
+
+        <LinearLayout
+            android:layout_width="128dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/func_pose_left"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                style="?android:attr/buttonStyle"
+                android:background="@drawable/btn_bg"
+                android:padding="4dp"
+                android:text="@string/left"
+                android:visibility="gone"/>
+            <Button
+                android:id="@+id/func_pose_down"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                style="?android:attr/buttonStyle"
+                android:background="@drawable/btn_bg"
+                android:padding="4dp"
+                android:layout_marginStart="4dp"
+                android:text="@string/down"
+                android:visibility="gone"/>
+            <Button
+                android:id="@+id/func_pose_right"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                style="?android:attr/buttonStyle"
+                android:background="@drawable/btn_bg"
+                android:padding="4dp"
+                android:layout_marginStart="4dp"
+                android:text="@string/right"
+                android:visibility="gone"/>
+        </LinearLayout>
 
         <com.convert.robotcontrol.view.OrientationView
             android:id="@+id/orientation_view"

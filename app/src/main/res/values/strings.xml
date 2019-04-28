@@ -26,4 +26,10 @@
     <string name="video">视频</string>
     <string name="map_th">地图的略缩图</string>
     <string name="map">地图</string>
+
+    <string name="up">↑</string>
+    <string name="down">↓</string>
+    <string name="left">←</string>
+    <string name="right">→</string>
+
 </resources>

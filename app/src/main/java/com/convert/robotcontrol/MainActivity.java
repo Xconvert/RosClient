@@ -61,6 +61,10 @@ public class MainActivity extends AppCompatActivity implements Callback {
     private Button mFuncClearPoint;
     private LinearLayout mPoseLayout;
     private TextView mTipSetPose;
+    private Button mPoseUp;
+    private Button mPoseLeft;
+    private Button mPoseDown;
+    private Button mPoseRight;
     private Button mSetPoseBtn;
     private OrientationView mOrientationView;
     private static boolean sIsOpenMap = false;
@@ -113,6 +117,7 @@ public class MainActivity extends AppCompatActivity implements Callback {
             mRockerView.setOnAngleChangeListener(new RockerView.OnAngleChangeListener() {
                 @Override
                 public void onStart() {
+                    mRobotManager.startCtrl();
                 }
 
                 @Override
@@ -124,6 +129,7 @@ public class MainActivity extends AppCompatActivity implements Callback {
                 @Override
                 public void onFinish() {
                     mRobotManager.doControl(0, 0);
+                    mRobotManager.finishCtrl();
                 }
             });
         }
@@ -239,6 +245,42 @@ public class MainActivity extends AppCompatActivity implements Callback {
 
         mPoseLayout = (LinearLayout) findViewById(R.id.map_pose_layout);
         mTipSetPose = (TextView) findViewById(R.id.tip_set_pose);
+        mPoseUp = (Button) findViewById(R.id.func_pose_up);
+        mPoseUp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mRobotManager.isSetRobotPoint()) {
+                    mRobotManager.robotPsUp();
+                }
+            }
+        });
+        mPoseLeft = (Button) findViewById(R.id.func_pose_left);
+        mPoseLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mRobotManager.isSetRobotPoint()) {
+                    mRobotManager.robotPsLeft();
+                }
+            }
+        });
+        mPoseDown = (Button) findViewById(R.id.func_pose_down);
+        mPoseDown.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mRobotManager.isSetRobotPoint()) {
+                    mRobotManager.robotPsDown();
+                }
+            }
+        });
+        mPoseRight = (Button) findViewById(R.id.func_pose_right);
+        mPoseRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mRobotManager.isSetRobotPoint()) {
+                    mRobotManager.robotPsRight();
+                }
+            }
+        });
         mSetPoseBtn = (Button) findViewById(R.id.func_set_pose);
         mSetPoseBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -249,6 +291,10 @@ public class MainActivity extends AppCompatActivity implements Callback {
                         //view operation
                         sIsEstimatePose = false;
                         mTipSetPose.setVisibility(View.GONE);
+                        mPoseUp.setVisibility(View.GONE);
+                        mPoseLeft.setVisibility(View.GONE);
+                        mPoseDown.setVisibility(View.GONE);
+                        mPoseRight.setVisibility(View.GONE);
                         mOrientationView.setVisibility(View.GONE);
                         mSetPoseBtn.setText(getText(R.string.set_position));
 
@@ -262,6 +308,10 @@ public class MainActivity extends AppCompatActivity implements Callback {
                     sIsEstimatePose = true;
                     //view operation
                     mTipSetPose.setVisibility(View.VISIBLE);
+                    mPoseUp.setVisibility(View.VISIBLE);
+                    mPoseLeft.setVisibility(View.VISIBLE);
+                    mPoseDown.setVisibility(View.VISIBLE);
+                    mPoseRight.setVisibility(View.VISIBLE);
                     mOrientationView.setVisibility(View.VISIBLE);
                     mSetPoseBtn.setText(getText(R.string.sure_pose));
 

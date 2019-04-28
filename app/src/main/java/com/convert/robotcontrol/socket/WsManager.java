@@ -22,6 +22,7 @@ public class WsManager {
     private final String TAG = "WsManager";
     private WebSocketCallback mCallback;
     private LoadCallback mLoadCallBack;
+    private String mServerUrl;
     /**
      * WebSocket config
      */
@@ -59,19 +60,13 @@ public class WsManager {
     }
 
     public void init(String url) {
-        try {
-            String ctrlUrl = createWsUrl(url, CTRL_SERVER_PORT);
-            mControlClient = new WebSocketFactory().createSocket(ctrlUrl, CONNECT_TIMEOUT)
-                    .setFrameQueueSize(FRAME_QUEUE_SIZE)//设置帧队列最大值为5
-                    .setMissingCloseFrameAllowed(false)//设置不允许服务端关闭连接却未发送关闭帧
-                    .addListener(mControlListener = new ControlWsListener())//添加回调监听
-                    .connectAsynchronously();//异步连接
-            setControlStatus(WsStatus.CONNECTING);
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        mServerUrl = url;
+        mControlListener = new ControlWsListener();
 
+        //control function and navigation can not coexist
+
+        //NavigationClient
         try {
             String nvgUrl = createWsUrl(url, NVG_SERVER_PORT);
             mNavigationClient = new WebSocketFactory().createSocket(nvgUrl, CONNECT_TIMEOUT)
@@ -85,6 +80,7 @@ public class WsManager {
             e.printStackTrace();
         }
 
+        //VideoClient
         try {
             String videoUrl = createWsUrl(url, VIDEO_SERVER_PORT);
             mVideoClient = new WebSocketFactory().createSocket(videoUrl, CONNECT_TIMEOUT)
@@ -97,6 +93,24 @@ public class WsManager {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void connectCtrlClient(){
+        try {
+            String ctrlUrl = createWsUrl(mServerUrl, CTRL_SERVER_PORT);
+            mControlClient = new WebSocketFactory().createSocket(ctrlUrl, CONNECT_TIMEOUT)
+                    .setFrameQueueSize(FRAME_QUEUE_SIZE)//设置帧队列最大值为5
+                    .setMissingCloseFrameAllowed(false)//设置不允许服务端关闭连接却未发送关闭帧
+                    .addListener(mControlListener)//添加回调监听
+                    .connectAsynchronously();//异步连接
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void disconnectCtrlClient(){
+        mControlClient.disconnect();
     }
 
     private String createWsUrl(String url, int port){
@@ -125,7 +139,6 @@ public class WsManager {
             super.onConnected(websocket, headers);
             Log.i(TAG, "ControlWs Connected succeed");
             setControlStatus(WsStatus.CONNECT_SUCCESS);
-            mLoadCallBack.report(true);
         }
 
 
@@ -133,7 +146,6 @@ public class WsManager {
         public void onConnectError(WebSocket websocket, WebSocketException exception)
                 throws Exception {
             super.onConnectError(websocket, exception);
-            mLoadCallBack.report(false);
             Log.e(TAG, "ControlWs onConnectError: 连接错误", exception);
             setControlStatus(WsStatus.CONNECT_FAIL);
         }
@@ -199,6 +211,7 @@ public class WsManager {
             super.onConnected(websocket, headers);
             Log.i(TAG, "VideoWs Connected succeed");
             setVideoStatus(WsStatus.CONNECT_SUCCESS);
+            mLoadCallBack.report(true);
         }
 
 
@@ -208,6 +221,7 @@ public class WsManager {
             super.onConnectError(websocket, exception);
             Log.e(TAG, "VideoWs onConnectError: 连接错误", exception);
             setVideoStatus(WsStatus.CONNECT_FAIL);
+            mLoadCallBack.report(false);
         }
 
 

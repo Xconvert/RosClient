@@ -24,6 +24,8 @@ public class RobotManager implements WebSocketCallback {
 
     private static RobotManager sRobotManager;
 
+    private final int ONE_PX = 1;
+
     private Callback mCallback;
     //map manager
     private MapManager mMapManager;
@@ -112,6 +114,22 @@ public class RobotManager implements WebSocketCallback {
         return mMapManager.getDesMap();
     }
 
+    public void robotPsUp(){
+        mMapManager.moveRobot(MapManager.UP, ONE_PX);
+    }
+
+    public void robotPsLeft(){
+        mMapManager.moveRobot(MapManager.LEFT, ONE_PX);
+    }
+
+    public void robotPsDown(){
+        mMapManager.moveRobot(MapManager.DOWN, ONE_PX);
+    }
+
+    public void robotPsRight(){
+        mMapManager.moveRobot(MapManager.RIGHT, ONE_PX);
+    }
+
     //============================
     //======== webSocket =========
     //============================
@@ -192,4 +210,12 @@ public class RobotManager implements WebSocketCallback {
         }
     }
 
+    //control function and navigation can not coexist
+    public void startCtrl() {
+        mWsManager.connectCtrlClient();
+    }
+
+    public void finishCtrl() {
+        mWsManager.disconnectCtrlClient();
+    }
 }
